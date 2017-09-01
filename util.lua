@@ -2,7 +2,8 @@
 opts = {
 	hpshare = false,
 	magicshare = false,
-	deathshare = false
+	deathshare = false,
+	sfx = true
 }
 
 -- UTILITIES

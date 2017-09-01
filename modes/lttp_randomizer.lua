@@ -23,8 +23,8 @@ end
 local mushroomByte = 0x7EF344
 
 return {
-	guid = "bdd24f52-ccb5-4802-b124-fddbf3ba78be",
-	format = "1.10",
+	guid = "24fa50cf-3f0b-496f-8bc5-46072e70f05b",
+	format = "1.11",
 	name = "Link to the Past Randomizer",
 	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
 	
@@ -75,33 +75,33 @@ return {
 		[0x7EF2DB] = {kind="custom"},
 		[0x7EF340] = {kind=zeroRising},                     -- Bows, tracked in INVENTORY_SWAP_2 but must be nonzero to appear in inventory
 		[0x7EF341] = {kind=zeroRising},                     -- Boomerangs, tracked in INVENTORY_SWAP
-		[0x7EF342] = {name="Hookshot", kind="high"},
+		[0x7EF342] = {name="Hookshot", kind="high",sfx=0x0F},
 		[0x7EF343] = {kind="either"}, -- Bombs
-		[0x7EF345] = {name="Fire Rod", kind="high"},
-		[0x7EF346] = {name="Ice Rod", kind="high"},
-		[0x7EF347] = {name="Bombos", kind="high"},
-		[0x7EF348] = {name="Ether", kind="high"},
-		[0x7EF349] = {name="Quake", kind="high"},
-		[0x7EF34A] = {name="Lantern", kind="high"},
-		[0x7EF34B] = {name="Hammer", kind="high"},
+		[0x7EF345] = {name="Fire Rod", kind="high",sfx=0x0F},
+		[0x7EF346] = {name="Ice Rod", kind="high",sfx=0x0F},
+		[0x7EF347] = {name="Bombos", kind="high",sfx=0x0F},
+		[0x7EF348] = {name="Ether", kind="high",sfx=0x0F},
+		[0x7EF349] = {name="Quake", kind="high",sfx=0x0F},
+		[0x7EF34A] = {name="Lantern", kind="high",sfx=0x0F},
+		[0x7EF34B] = {name="Hammer", kind="high",sfx=0x0F},
 		-- Note this doesn't need to happen in INVENTORY_SWAP receiveTrigger bc you can only upgrade the flute while holding it
-		[0x7EF34C] = {kind=zeroRisingOrUpgradeFlute},       -- Shovel flute etc, tracked in INVENTORY_SWAP
-		[0x7EF34D] = {name="Net", kind="high"},
-		[0x7EF34E] = {name="Book", kind="high"},
-		[0x7EF34F] = {kind="high"}, -- Bottle count
-		[0x7EF350] = {name="Red Cane", kind="high"},
-		[0x7EF351] = {name="Blue Cane", kind="high"},
-		[0x7EF352] = {name="Cape", kind="high"},
-		[0x7EF353] = {name="Mirror", kind="high"},
-		[0x7EF354] = {nameMap={"Power Glove", "Titan's Mitt"}, kind="high"},
-		[0x7EF355] = {name="Boots", kind="high"},
-		[0x7EF356] = {name="Flippers", kind="high"},
-		[0x7EF357] = {name="Pearl", kind="high"},
+		[0x7EF34C] = {kind=zeroRisingOrUpgradeFlute,sfx=0x0F},       -- Shovel flute etc, tracked in INVENTORY_SWAP
+		[0x7EF34D] = {name="Net", kind="high",sfx=0x0F},
+		[0x7EF34E] = {name="Book", kind="high",sfx=0x0F},
+		[0x7EF34F] = {kind="high",sfx=0x0F}, -- Bottle count
+		[0x7EF350] = {name="Red Cane", kind="high",sfx=0x0F},
+		[0x7EF351] = {name="Blue Cane", kind="high",sfx=0x0F},
+		[0x7EF352] = {name="Cape", kind="high",sfx=0x0F},
+		[0x7EF353] = {name="Mirror", kind="high",sfx=0x0F},
+		[0x7EF354] = {nameMap={"Power Glove", "Titan's Mitt"}, kind="high",sfx=0x0F},
+		[0x7EF355] = {name="Boots", kind="high",sfx=0x0F},
+		[0x7EF356] = {name="Flippers", kind="high",sfx=0x0F},
+		[0x7EF357] = {name="Pearl", kind="high",sfx=0x0F},
 		[0x7EF359] = {nameMap={"Fighter's Sword", "Master Sword", "Tempered Sword", "Golden Sword"}, kind="high",
-			cond={"test", gte = 0x1, lte = 0x4} -- Avoid 0xFF trap during dwarf quest
+			cond={"test", gte = 0x1, lte = 0x4},sfx=0x0F -- Avoid 0xFF trap during dwarf quest
 		},
-		[0x7EF35A] = {nameMap={"Shield", "Fire Shield", "Mirror Shield"}, kind="high"},
-		[0x7EF35B] = {nameMap={"Blue Armor", "Red Armor"}, kind="high"},
+		[0x7EF35A] = {nameMap={"Shield", "Fire Shield", "Mirror Shield"}, kind="high",sfx=0x0F},
+		[0x7EF35B] = {nameMap={"Blue Armor", "Red Armor"}, kind="high",sfx=0x0F},
 		[0x7EF35C] = {nameMap={"Mush", "Empty Bottle", "Red Potion", "Green Potion", "Blue Potion", "Hostage", "Bee", "Gold Bee"}, kind="bottle"},
 		[0x7EF35D] = {nameMap={"Mush", "Empty Bottle", "Red Potion", "Green Potion", "Blue Potion", "Hostage", "Bee", "Gold Bee"}, kind="bottle"},
 		[0x7EF35E] = {nameMap={"Mush", "Empty Bottle", "Red Potion", "Green Potion", "Blue Potion", "Hostage", "Bee", "Gold Bee"}, kind="bottle"},
@@ -125,10 +125,10 @@ return {
 		[0x7EF372] = {kind="HealthShare", stype="uLowsHigh", diff="add"}, -- Hearts filler
 		[0x7EF373] = {kind="MagicShare", stype="uLowsHigh", diff="add"}, -- Magic filler
 		[0x7EF379] = {kind="bitOr"}, -- Abilities
-		[0x7EF374] = {name="a Pendant", kind="bitOr"},
+		[0x7EF374] = {name="a Pendant", kind="bitOr",sfx=0x2E},
 		[0x7EF377] = {kind="either"}, -- Arrows
-		[0x7EF37A] = {name="a Crystal", kind="bitOr"},
-		[0x7EF37B] = {nameMap={"1/2 Magic", "1/4 Magic"}, kind="high"},
+		[0x7EF37A] = {name="a Crystal", kind="bitOr",sfx=0x2E},
+		[0x7EF37B] = {nameMap={"1/2 Magic", "1/4 Magic"}, kind="high",sfx=0x3C},
 		[0x7EF37C] = {kind="either"}, -- Keys
 		[0x7EF37D] = {kind="either"}, -- Keys
 		[0x7EF37E] = {kind="either"}, -- Keys

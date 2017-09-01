@@ -1,2 +1,4 @@
+Gotta fix stats (mail / lag / rupees count)
 
+Add SFX as an option for playing sounds when partner gets items and stuffs.
 

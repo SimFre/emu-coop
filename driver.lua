@@ -91,6 +91,12 @@ function recordChanged(record, value, previousValue, receiving,addr)
 			record.verb = "finished"
 			memoryWrite(0x7EF443,1)
 			memoryWrite(0x7E0011,0)
+			memoryWrite(0x7E00B0,0)
+			memoryWrite(0x7EF424,memoryRead(0x7EF424)+0x40)
+			memoryWrite(0x7EF43C,memoryRead(0x7EF43C)-1)
+			memoryWrite(0x7F5038,memoryRead(0x7EF43E,4)-memoryRead(0x7EF42E,4),4)
+			memoryWrite(0x7F503C,memoryRead(0x7EF42B,2)+memoryRead(0x7EF362,2),2)
+			memoryWrite(0x7F503E,memoryRead(0x7EF423)-memoryRead(0x7EF442))
 			record.cache = value 
 			allow = true
 		elseif value == 0x12 and previousValue ~= value then
@@ -117,6 +123,7 @@ function recordChanged(record, value, previousValue, receiving,addr)
 			record.cache = value
 		elseif previousValue < value then 
 			record.verb = "got" 
+			record.sfx = 0x0F
 			record.name = record.nameMap[value]
 			record.cache = value
 		end		
@@ -319,6 +326,9 @@ function GameDriver:handleTable(t)
 				end
 				record.cache = value
 				memoryWrite(addr, value, record.size)
+				if record.sfx and opts.sfx then
+					memoryWrite(0x7E012F,record.sfx)
+				end
 			end
 		else
 			if driverDebug then print("Unknown memory address was " .. tostring(addr)) end

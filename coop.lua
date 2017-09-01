@@ -70,6 +70,7 @@ if emu.emulating() then
 				opts.hpshare = data.hpshare
 				opts.magicshare = data.magicshare
 				opts.deathshare = data.deathshare
+				opts.sfx = data.sfx
 				mainDriver = GameDriver(spec, data.forceSend) -- Notice: This is a global, specs can use it
 				IrcPipe(data, mainDriver):wake(server)
 			end
