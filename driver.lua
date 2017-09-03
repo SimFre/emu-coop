@@ -104,6 +104,7 @@ function recordChanged(record, value, previousValue, receiving,addr)
 				record.name = "- Press F to Pay Respects."
 				record.verb = "died"
 				memoryWrite(0x7E0011,0)
+				memoryWrite(0x7E00B0,0)
 				record.cache = value 
 				allow = true
 			else
@@ -145,7 +146,8 @@ function performTest(record, valueOverride, sizeOverride)
 		return (not record.gte or value >= record.gte) and
 			   (not record.lte or value <= record.lte) and
 			   (value ~= 0x17) and -- 17 save & quit
-			   (value ~= 0x14) -- 14 intro between title and file select (aka history mode)
+			   (value ~= 0x14) and -- 14 intro between title and file select (aka history mode)
+			   (value ~= 0x0E and opts.deathshare) -- Prevent some soft-lock for death-sharing related stuff 
 	elseif record[1] == "stringtest" then
 		local cmatch = 0
 		local match = false
