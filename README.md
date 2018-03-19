@@ -2,7 +2,7 @@
 
 This directory contains some Lua scripts that, when loaded by a compliant emulator such as snes9x-rr or FCEUX, can synchronize emulator state over the internet (allowing "cooperative" playthroughs of single-player games).
 
-Each game you want to use this with requires a "mode" file in the modes/ directory. Currently included are modes for Link to the Past and the Link to the Past "Randomizer".
+Each game you want to use this with requires a "mode" file in the modes/ directory. Currently included are modes for Link to the Past, the Link to the Past "Randomizer", Zelda 1 and Super Metroid. **WARNING: Modes are PROGRAMS, like a .exe file. Do not install a mode file unless it came from someone you know and trust.** 
 
 You can find a guide on how to use these scripts at <https://goo.gl/CSkF4x>.
 
@@ -14,7 +14,7 @@ These files were originally written by Andi McClure and later edited by Alvytv; 
 
 Big thanks to:
 * The LTTP Randomizer team, esp. Mike Trethewey, Zarby89 and Karkat, for information
-* Alex Zandra and Maya Shinohara for help testing
+* Alex Zandra and Maya Shinohara, and Andypro1 from github for help testing
 * Andi McClure and Alvytv for creating/updating these scripts
 
 Unless otherwise noted, the license is:
