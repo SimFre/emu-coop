@@ -22,26 +22,9 @@ end
 
 local mushroomByte = 0x7EF344
 
-local currentKeysByte = 0x7EF36F
-local dungeonWord = 0x7E040C
-local sewerValue = 0x00
-local hcValue = 0x02
-local epValue = 0x04
-local dpValue = 0x06
-local atValue = 0x08
-local spValue = 0x0A
-local podValue = 0x0C
-local mmValue = 0x0E
-local swValue = 0x10
-local ipValue = 0x12
-local tohValue = 0x14
-local ttValue = 0x16
-local trValue = 0x18
-local gtValue = 0x1A
-
 return {
 	guid = "edf55b1b-30c3-4164-bcd2-6f44563651ec",
-	format = "1.13",
+	format = "1.14",
 	name = "Link to the Past Randomizer - Cross",
 	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
 
