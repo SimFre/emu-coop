@@ -4,9 +4,5 @@
 modes = {
 	require "modes.lttp",
 	require "modes.lttp_randomizer",
-	require "modes.lttp_randomizer_cross",
-	require "modes.super_metroid",
-	require "modes.tloz_basic",
-	require "modes.tloz_progress",
-	require "modes.tloz_all"
+	require "modes.lttp_randomizer_cross"
 }
