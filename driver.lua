@@ -46,6 +46,7 @@ function recordChanged(record, value, previousValue, receiving,addr)
 					memory.writebyte(0x7EF372, healthRefill)
 					memory.writebyte(0x7EF36D, value)
 				end
+				value = math.min(value, maxHealth)
 				allow = value ~= previousValue
 			end
 		else
@@ -108,17 +109,10 @@ function recordChanged(record, value, previousValue, receiving,addr)
 		end
 	elseif record.kind == "state" then
 		if value == 0x19 and previousValue ~= value then
-			record.name = "game"
-			record.verb = "finished"
-			memoryWrite(0x7EF443,1)
-			memoryWrite(0x7E0011,0)
 			record.cache = value
 			allow = true
 		elseif value == 0x12 and previousValue ~= value then
 			if opts.deathshare then
-				record.name = "- Press F to Pay Respects."
-				record.verb = "died"
-				memoryWrite(0x7E0011,0)
 				record.cache = value
 				allow = true
 			else
@@ -154,6 +148,20 @@ function recordChanged(record, value, previousValue, receiving,addr)
 	end
 	if allow and record.cond then
 		allow = performTest(record.cond, value, record.size)
+	end
+	if allow and record.kind == "state" then
+		if value == 0x19 and previousValue ~= value then
+			record.name = "game"
+			record.verb = "finished"
+			memoryWrite(0x7EF443,1)
+			memoryWrite(0x7E0011,0)
+		elseif value == 0x12 and previousValue ~= value then
+			if opts.deathshare then
+				record.name = "- Press F to Pay Respects."
+				record.verb = "died"
+				memoryWrite(0x7E0011,0)
+			end
+		end
 	end
 	return allow, value
 end
