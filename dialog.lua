@@ -5,22 +5,22 @@ local optionLetter = "o"
 if FCEU then optionLetter = "l" end
 
 function ircDialog()
-	local res, server, port, nick, partner, forceSend, hpshare, magicshare, deathshare = iup.GetParam("Connection settings", nil,
+	local res, server, port, nick, partner, forceSend, hpshare, magicshare, retromode = iup.GetParam("Connection settings", nil,
 	    "Enter an IRC server: %s\n" ..
 		"IRC server port: %i\n" ..
 		"Your nick: %s\n" ..
 		"Partner nick: %s\n" ..
 		"%t\n" .. -- <hr>
-		"Are you restarting\rafter a crash? %" .. optionLetter .. "|No|Yes|\n" ..
-		"%t\n" .. 
-		"Damage share? %" .. optionLetter .. "|No|Yes|\n" ..
-		"Magic share? %" .. optionLetter .. "|No|Yes|\n" ..
-		"Death share? %" .. optionLetter .. "|No|Yes|\n"
+		"Are you restarting\rafter a crash? %b\n" ..
+		"%t\n" ..
+		"Current Health share? %b\n" ..
+		"Magic share? %b\n" ..
+		"Retro mode? %b\n"
 		,"svn.eastcoast.hosting", 6667, "", "", 0,0,0,0)
 
 	if 0 == res then return nil end
 
-	return {server=server, port=port, nick=nick:lower(), partner=partner:lower(), forceSend=forceSend==1, hpshare=hpshare==1, magicshare=magicshare==1, deathshare=deathshare==1 }
+	return {server=server, port=port, nick=nick:lower(), partner=partner:lower(), forceSend=forceSend==1, hpshare=hpshare==1, magicshare=magicshare==1, retromode=retromode==1 }
 end
 
 function selectDialog(specs, reason)

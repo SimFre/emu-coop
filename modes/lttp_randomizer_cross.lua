@@ -23,12 +23,13 @@ end
 local mushroomByte = 0x7EF344
 
 return {
-	guid = "edf55b1b-30c3-4164-bcd2-6f44563651ec",
+	guid = "420ca877-f90b-4dd4-be96-cf319ae3357f",
 	format = "1.14",
-	name = "Link to the Past Randomizer - Cross",
+	name = "Link to the Past Randomizer - Different Seeds",
 	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
 
-	running = {"test", addr = 0x7E0010, gte = 0x6, lte = 0x19}, -- 18 required for aga2, used during transition from gt to pyramid, 19 so we can sync endgame
+	running = {"test", addr = 0x7E0010, values = {0x07, 0x09, 0x0B, 0x0E, 0x12, 0x13, 0x15, 0x16, 0x18, 0x19}},
+	receiving = {"test", addr = 0x7E0011, values = {0x00}},
 	sync = {
 		-- INVENTORY_SWAP
 		[0x7EF38C] = {
@@ -50,7 +51,16 @@ return {
 			end
 		},
 		[0x7E0010] = {kind="state",
-			cond={"test", gte = 0x6, lte = 0x17}
+			sleep=function(value)
+			  local state = memory.readbyte(0x7E0010)
+			  local submodule = memory.readbyte(0x7E0011)
+				return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00) and (state ~= value))
+			end,
+			receiveTrigger=function(value, previousValue)
+				if (value == 0x19 and previousValue ~= 0x19) then
+					memory.writebyte(0x7EF443, 1)
+				end
+			end
 		},
 		-- INVENTORY_SWAP_2
 		[0x7EF38E] = {
@@ -59,12 +69,14 @@ return {
 		},
 
 		-- PROGRESSIVE_SHIELD
-		[0x7EF416] = { -- TODO: Add a 0xC0 mask? Currently mask is not supported with "high"
-			kind="high" -- Sync silently-- this is a backup in case your shield gets eaten
+		[0x7EF416] = {
+			kind="high", -- Sync silently-- this is a backup in case your shield gets eaten
+			mask=0xC0
 		},
 		-- PROGRESSIVE_SWORD
-		[0x7EF417] = { -- TODO: Add a 0xC0 mask? Currently mask is not supported with "high"
-			kind="high" -- Sync silently-- this is a backup in case your sword gets eaten
+		[0x7EF417] = {
+			kind="high", -- Sync silently-- this is a backup in case your sword gets eaten
+			mask=0x07
 		},
 		[0x7EF340] = {kind=zeroRising},                     -- Bows, tracked in INVENTORY_SWAP_2 but must be nonzero to appear in inventory
 		[0x7EF341] = {kind=zeroRising},                     -- Boomerangs, tracked in INVENTORY_SWAP
@@ -101,12 +113,22 @@ return {
 		[0x7EF35F] = {nameMap={"Mush", "Empty Bottle", "Red Potion", "Green Potion", "Blue Potion", "Hostage", "Bee", "Gold Bee"}, kind="bottle"},
 		[0x7EF360] = {kind="either"}, -- Rupee byte 1
 		[0x7EF361] = {kind="either"}, -- Rupee byte 2
-		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill"}, -- Health 2
-		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill"}, -- Magic 1
+		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Health 2
+		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Magic 1
 		[0x7EF379] = {kind="bitOr"}, -- Abilities
 		[0x7EF377] = {kind="either"}, -- Arrows
 		[0x7EF37B] = {nameMap={"1/2 Magic", "1/4 Magic"}, kind="high"},
 
-		[0x7EF460] = {kind="high"} -- Triforce pieces
+		[0x7EF418] = {kind="high"}, -- Triforce pieces
 	}
 }

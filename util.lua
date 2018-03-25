@@ -2,7 +2,7 @@
 opts = {
 	hpshare = false,
 	magicshare = false,
-	deathshare = false
+	retromode = false
 }
 
 -- UTILITIES
@@ -73,6 +73,22 @@ function versionMatches(mine, theirs, exact) -- If exact is false allow "downgra
 	mine = mine and parseVersion(mine)
 	theirs = theirs and parseVersion(theirs)
 	return parsedVersionMatches(mine, theirs, exact)
+end
+
+function optionsMatch(mine, theirs)
+	local ordered_keys = {}
+
+	for k in pairs(mine) do
+    table.insert(ordered_keys, k)
+	end
+
+	table.sort(ordered_keys)
+	for i = 1, #ordered_keys do
+    if mine[ordered_keys[i]] ~= theirs[ordered_keys[i]] then
+			return false
+		end
+	end
+	return true
 end
 
 -- Callback to print the current error message

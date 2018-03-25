@@ -40,12 +40,13 @@ local trValue = 0x18
 local gtValue = 0x1A
 
 return {
-	guid = "2e5f1387-5d73-4eac-b9af-1d3496eb45f6",
+	guid = "d5cef985-ead9-4553-98d4-4dc6d95cc96c",
 	format = "1.14",
 	name = "Link to the Past Randomizer",
 	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
 
-	running = {"test", addr = 0x7E0010, gte = 0x6, lte = 0x19}, -- 18 required for aga2, used during transition from gt to pyramid, 19 so we can sync endgame
+	running = {"test", addr = 0x7E0010, values = {0x07, 0x09, 0x0B, 0x0E, 0x12, 0x13, 0x15, 0x16, 0x18, 0x19}},
+	receiving = {"test", addr = 0x7E0011, values = {0x00}},
 	sync = {
 		-- INVENTORY_SWAP
 		[0x7EF38C] = {
@@ -75,10 +76,22 @@ return {
 				end
 			end
 		},
-		[0x7E0010] = {kind="state"},
+		[0x7E0010] = {kind="state",
+			sleep=function(value)
+			  local state = memory.readbyte(0x7E0010)
+			  local submodule = memory.readbyte(0x7E0011)
+				return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00) and (state ~= value))
+			end,
+			receiveTrigger=function(value, previousValue)
+				if (value == 0x19 and previousValue ~= 0x19) then
+					memory.writebyte(0x7EF443, 1)
+				end
+			end
+		},
 		-- INVENTORY_SWAP_2
 		[0x7EF38E] = {
-			nameBitmap={"unknown item", "unknown item", "unknown item", "unknown item", "unknown item", "unknown item", "Silver Arrows", "Bow"},
+			nameBitmap={"unknown item", "unknown item", "unknown item", "unknown item", "unknown item", "unknown item", "Silver Arrows", "Wooden Arrows"},
+			msgMask=0xC0,
 			kind="bitOr"
 		},
 
@@ -87,7 +100,7 @@ return {
 			nameBitmap={"the old man", "king zora's stomach contents", "the sick kid", "stumpy - NOT", "shashlic", "catfish's present", "unknown npc", "the librarian"},
 			verb="rescued",
 			msgMask=0x1,
-			mask=0xBF, -- Only sync old man [1], king zora [2], sick kid [4], stunpy [8], sahrashala [16], catfish [32] and library [128]
+			mask=0xBF, -- Only sync old man [1], king zora [2], sick kid [4], stumpy [8], sahrashala [16], catfish [32] and library [128]
 			kind="bitOr"
 		},
 
@@ -97,17 +110,19 @@ return {
 		},
 
 		-- PROGRESSIVE_SHIELD
-		[0x7EF416] = { -- TODO: Add a 0xC0 mask? Currently mask is not supported with "high"
-			kind="high" -- Sync silently-- this is a backup in case your shield gets eaten
+		[0x7EF416] = {
+			kind="high", -- Sync silently-- this is a backup in case your shield gets eaten
+			mask=0xC0
 		},
 		-- PROGRESSIVE_SWORD
-		[0x7EF417] = { -- TODO: Add a 0xC0 mask? Currently mask is not supported with "high"
-			kind="high" -- Sync silently-- this is a backup in case your sword gets eaten
+		[0x7EF417] = {
+			kind="high", -- Sync silently-- this is a backup in case your sword gets eaten
+			mask=0x07
 		},
 		[0x7EF01B] = {name="aga2",verb="killed",kind="bitOr",mask=0x8},
 		[0x7EF041] = {name="aga1",verb="killed",kind="bitOr",mask=0x8},
 		[0x7EF2DB] = {kind="custom"},
-		[0x7EF340] = {kind=zeroRising},                     -- Bows, tracked in INVENTORY_SWAP_2 but must be nonzero to appear in inventory
+		[0x7EF340] = {name="Bow", kind=zeroRising},					-- Bows, tracked in INVENTORY_SWAP_2 but must be nonzero to appear in inventory
 		[0x7EF341] = {kind=zeroRising},                     -- Boomerangs, tracked in INVENTORY_SWAP
 		[0x7EF342] = {name="Hookshot", kind="high"},
 		[0x7EF343] = {kind="either"}, -- Bombs
@@ -142,8 +157,6 @@ return {
 		[0x7EF35F] = {nameMap={"Mush", "Empty Bottle", "Red Potion", "Green Potion", "Blue Potion", "Hostage", "Bee", "Gold Bee"}, kind="bottle"},
 		[0x7EF360] = {kind="either"}, -- Rupee byte 1
 		[0x7EF361] = {kind="either"}, -- Rupee byte 2
-		--[0x7EF362] = {kind="high"}, -- Rupee byte 3
-		--[0x7EF363] = {kind="high"}, -- Rupee byte 4
 		[0x7EF366] = {
 			nameBitmap={"unknown BIG Key", "unknown BIG Key", "GT BIG Key", "TR BIG Key", "TT BIG Key", "ToH BIG Key", "IP BIG Key", "SW BIG Key"},
 			kind="bitOr"
@@ -158,14 +171,20 @@ return {
 		[0x7EF369] = {kind="bitOr"},
 		[0x7EF36B] = {kind="either"}, -- Heart pieces
 		[0x7EF36C] = {kind="high"}, -- Health 1
-		--[0x7EF36D] = {kind="HealthShare", stype="uHighsLow", diff="sub"}, -- Health 2
-		--[0x7EF36E] = {kind="MagicShare", stype="uHighsLow", diff="sub"}, -- Magic 1
-		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill"}, -- Health 2
-		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill"}, -- Magic 1
+		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Health 2
+		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Magic 1
 		[0x7EF370] = {kind="high"}, -- Bomb upgrades
 		[0x7EF371] = {kind="high"}, -- Arrow upgrades
-		--[0x7EF372] = {kind="HealthShare", stype="uLowsHigh", diff="add"}, -- Hearts filler
-		--[0x7EF373] = {kind="MagicShare", stype="uLowsHigh", diff="add"}, -- Magic filler
 		[0x7EF379] = {kind="bitOr"}, -- Abilities
 		[0x7EF374] = {name="a Pendant", kind="bitOr"},
 		[0x7EF377] = {kind="either"}, -- Arrows
@@ -175,6 +194,37 @@ return {
 		[0x7EF3C6] = {kind="bitOr"}, -- Events 2
 		[0x7EF3C7] = {kind="high"}, -- Map
 		[0x7EF3C9] = {kind="bitOr"}, -- Events 3
+
+		-- Current Keys for Retromode
+		[0x7EF36F] = {name="a Key", kind="key",
+		cond={"optiontest", addr = "retromode", value = true}},
+
+		-- Shops for Retromode
+		[0x7EF3A0] = {kind="high"},
+		[0x7EF3A1] = {kind="high"},
+		[0x7EF3A2] = {kind="high"},
+		[0x7EF3A3] = {kind="high"},
+		[0x7EF3A4] = {kind="high"},
+		[0x7EF3A5] = {kind="high"},
+		[0x7EF3A6] = {kind="high"},
+		[0x7EF3A7] = {kind="high"},
+		[0x7EF3A8] = {kind="high"},
+		[0x7EF3A9] = {kind="high"},
+		[0x7EF3AA] = {kind="high"},
+		[0x7EF3AB] = {kind="high"},
+		[0x7EF3AC] = {kind="high"},
+		[0x7EF3AD] = {kind="high"},
+		[0x7EF3AE] = {kind="high"},
+		[0x7EF3AF] = {kind="high"},
+		[0x7EF3B0] = {kind="high"},
+		[0x7EF3B1] = {kind="high"},
+		[0x7EF3B2] = {kind="high"},
+		[0x7EF3B3] = {kind="high"},
+		[0x7EF3B4] = {kind="high"},
+		[0x7EF3B5] = {kind="high"},
+		[0x7EF3B6] = {kind="high"},
+
+		[0x7EF418] = {kind="high"}, -- Triforce pieces
 
 		-- INDOORS
 		[0x7EF000] = {kind="bitOr"},
@@ -898,8 +948,6 @@ return {
 		[0x7EF2FE] = {kind="bitOr"},
 		[0x7EF2FF] = {kind="bitOr"},
 
-		[0x7EF460] = {kind="high"}, -- Triforce pieces
-
 		-- Small Keys
 
 		[0x7EF37C] = {name="HC Key", kind="key",
@@ -908,7 +956,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF37D] =  {name="HC Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -916,7 +965,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF37E] =  {name="EP Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -924,7 +974,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF37F] =  {name="DP Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -932,7 +983,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF380] = {name="AT Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -940,7 +992,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF381] = {name="SP Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -948,7 +1001,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF382] = {name="PoD Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -956,7 +1010,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF383] = {name="MM Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -964,7 +1019,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF384] = {name="SW Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -972,7 +1028,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF385] = {name="IP Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -980,7 +1037,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF386] = {name="ToH Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -988,7 +1046,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF387] = {name="TT Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -996,7 +1055,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF388] = {name="TR Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -1004,7 +1064,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 		[0x7EF389] = {name="GT Key", kind="key",
 		receiveTrigger=function(value, previousValue)
@@ -1012,7 +1073,8 @@ return {
 				local previousCurrentKeys = memory.readbyte(currentKeysByte)
 				memory.writebyte(currentKeysByte, previousCurrentKeys + 1)
 			end
-		end
+		end,
+		cond={"optiontest", addr = "retromode", value = false}
 					},
 
 		-- Dungeon Item Counts

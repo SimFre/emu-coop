@@ -16,7 +16,7 @@ require "driver"
 
 if emu.emulating() then
 	local spec = nil -- Mode specification
-	
+
 	local usableModes = {} -- Mode files that can be loaded in this version of coop.lua
 	for i,v in ipairs(modes) do
 		if versionMatches(version.modeFormat, v.format) then
@@ -74,7 +74,7 @@ if emu.emulating() then
 
 				opts.hpshare = data.hpshare
 				opts.magicshare = data.magicshare
-				opts.deathshare = data.deathshare
+				opts.retromode = data.retromode
 				mainDriver = GameDriver(spec, data.forceSend) -- Notice: This is a global, specs can use it
 				IrcPipe(data, mainDriver):wake(server)
 			end

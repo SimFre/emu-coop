@@ -1,5 +1,12 @@
 -- ACTUAL WORK HAPPENS HERE
 
+function contains(t, e)
+  for i = 1,#t do
+    if t[i] == e then return true end
+  end
+  return false
+end
+
 function memoryRead(addr, size)
 	if not size or size == 1 then
 		return memory.readbyte(addr)
@@ -38,16 +45,31 @@ function recordChanged(record, value, previousValue, receiving,addr)
 				allow = value > previousValue
 				if previousValue >= value then record.cache = value end
 			elseif record.stype == "uInstantRefill" then
-				local healthRefill = memory.readbyte(0x7EF372)
-				local maxHealth = memory.readbyte(0x7EF36C)
-				if healthRefill > 8 then
-					value = math.min(value + healthRefill - 8, maxHealth)
-					healthRefill = 8
-					memory.writebyte(0x7EF372, healthRefill)
-					memory.writebyte(0x7EF36D, value)
+        local state = memory.readbyte(0x7E0010)
+        if state ~= 0x12 then
+				  local healthRefill = memory.readbyte(0x7EF372)
+				  local maxHealth = memory.readbyte(0x7EF36C)
+				    if healthRefill > 8 then
+					    value = math.min(value + healthRefill - 8, maxHealth)
+					    healthRefill = 8
+					    memory.writebyte(0x7EF372, healthRefill)
+					    memory.writebyte(0x7EF36D, value)
+				    end
+				  value = math.min(value, maxHealth)
+				  allow = value ~= previousValue
+          record.name = nil
+          record.verb = nil
+          if receiving and value == 0x00 and allow then
+  					local currentHealth = memory.readbyte(0x7EF36D)
+  					memory.writebyte(0x7E0373, currentHealth)
+            record.name = "- Press F to Pay Respects."
+            record.verb = "died"
+          end
+        elseif not receiving then
+          allow = (value == 0x00) and (value ~= previousValue)
+				else
+          allow = false
 				end
-				value = math.min(value, maxHealth)
-				allow = value ~= previousValue
 			end
 		else
 			allow = false
@@ -81,7 +103,16 @@ function recordChanged(record, value, previousValue, receiving,addr)
 			allow = false
 		end
 	elseif record.kind == "high" then
-		allow = value > previousValue
+    local maskedValue         = value                        -- Backup value and previousValue
+    local maskedPreviousValue = previousValue
+    if record.mask then                                      -- If necessary, mask both before checking
+      maskedValue = AND(maskedValue, record.mask)
+      maskedPreviousValue = AND(maskedPreviousValue, record.mask)
+    end
+    allow = maskedValue > maskedPreviousValue
+    if record.mask then
+		  value = OR(AND(previousValue, XOR(0xFF, record.mask)), maskedValue)
+    end
 	elseif record.kind == "low" then
 		allow = previousValue > value
 	elseif record.kind == "either" then
@@ -111,14 +142,6 @@ function recordChanged(record, value, previousValue, receiving,addr)
 		if value == 0x19 and previousValue ~= value then
 			record.cache = value
 			allow = true
-		elseif value == 0x12 and previousValue ~= value then
-			if opts.deathshare then
-				record.cache = value
-				allow = true
-			else
-				record.cache = value
-				allow = false
-			end
 		elseif previousValue ~= value then
 			record.cache = value
 			allow = false
@@ -146,24 +169,31 @@ function recordChanged(record, value, previousValue, receiving,addr)
 	else
 		allow = value ~= previousValue
 	end
+
+	-- Checking additional conditions
 	if allow and record.cond then
 		allow = performTest(record.cond, value, record.size)
 	end
+
+	-- Cleanup
 	if allow and record.kind == "state" then
-		if value == 0x19 and previousValue ~= value then
+		if value == 0x19 and previousValue < value then
 			record.name = "game"
 			record.verb = "finished"
-			memoryWrite(0x7EF443,1)
-			memoryWrite(0x7E0011,0)
-		elseif value == 0x12 and previousValue ~= value then
-			if opts.deathshare then
-				record.name = "- Press F to Pay Respects."
-				record.verb = "died"
-				memoryWrite(0x7E0011,0)
-			end
 		end
 	end
+
+	if allow and record.kind == "key" and opts.retromode then
+		memory.writebyte(0x7EF38B, value)
+	end
+
 	return allow, value
+end
+
+function stayAsleep(record, value)
+	if not record then return false end
+	if not record.sleep then return false end
+	return record.sleep(value)
 end
 
 function performTest(record, valueOverride, sizeOverride)
@@ -171,10 +201,16 @@ function performTest(record, valueOverride, sizeOverride)
 
 	if record[1] == "test" then
 		local value = valueOverride or memoryRead(record.addr, sizeOverride or record.size)
-		return (not record.gte or value >= record.gte) and
-			   (not record.lte or value <= record.lte) and
-			   (value ~= 0x17) and -- 17 save & quit
-			   (value ~= 0x14) -- 14 intro between title and file select (aka history mode)
+		if record.gte and record.lte then
+			return (not record.gte or value >= record.gte) and
+			   	(not record.lte or value <= record.lte) and
+			   	(value ~= 0x17) and -- 17 save & quit
+			   	(value ~= 0x14) -- 14 intro between title and file select (aka history mode)
+		elseif record.values then
+			return contains(record.values, value)
+		else
+			return false
+		end
 	elseif record[1] == "stringtest" then
 		local cmatch = 0
 		local match = false
@@ -192,6 +228,8 @@ function performTest(record, valueOverride, sizeOverride)
 			if cmatch == #token then match = true end
 		end
 		if match then return true else return false end
+	elseif record[1] == "optiontest" then
+		return opts[record.addr] == record.value
 	else
 		return false
 	end
@@ -239,7 +277,7 @@ function GameDriver:checkFirstRunning() -- Do first-frame bootup-- only call if 
 end
 
 function GameDriver:childTick()
-	if self:isRunning() then
+	if self:isRunning(false) then
 		self:checkFirstRunning()
 
 		if #self.sleepQueue > 0 then
@@ -253,7 +291,7 @@ function GameDriver:childTick()
 end
 
 function GameDriver:childWake()
-	self:sendTable({"hello", version=version.release, guid=self.spec.guid})
+	self:sendTable({"hello", version=version.release, guid=self.spec.guid, options=opts})
 
 	for k,v in pairs(self.spec.sync) do
 		local syncTable = self.spec.sync -- Assume sync table is not replaced at runtime
@@ -275,14 +313,18 @@ function GameDriver:childWake()
 	end
 end
 
-function GameDriver:isRunning()
-	return performTest(self.spec.running)
+function GameDriver:isRunning(receiving)
+  if receiving then
+    return performTest(self.spec.running) and performTest(self.spec.receiving)
+  else
+	  return performTest(self.spec.running)
+  end
 end
 
 function GameDriver:caughtWrite(addr, arg2, record, size)
 	local running = self.spec.running
 
-	if self:isRunning() then -- TODO: Yes, we got record, but double check
+	if self:isRunning(false) then -- TODO: Yes, we got record, but double check
 		self:checkFirstRunning()
 
 		local allow = true
@@ -308,12 +350,16 @@ function GameDriver:handleTable(t)
 			self.pipe:abort("Partner has an incompatible .lua file for this game.")
 			print("Partner's game mode file has guid:\n" .. tostring(t.guid) .. "\nbut yours has:\n" .. tostring(self.spec.guid))
 		end
+    if not optionsMatch(opts, t.options) then
+      self.pipe:abort("Partner disagrees on options chosen.")
+      print("Partner's options are:\n" .. tostring(t.options) .. "\nbut yours are:\n" .. tostring(opts))
+    end
 		return
 	end
 
 	local addr = t.addr
 	local record = self.spec.sync[addr]
-	if self:isRunning() then
+	if (self:isRunning(true) and not stayAsleep(record, t.value)) then
 		self:checkFirstRunning()
 
 		if record then

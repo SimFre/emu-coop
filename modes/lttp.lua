@@ -8,19 +8,26 @@
 -- Thanks to the Zelda randomizer team, especially Mike Trethewey, Zarby89 and Karkat
 -- This file is available under Creative Commons CC0
 
-local notagValue = 0x00
+local noTagValue = 0x00
 local izValue = 0x05
 local haveIzelda = false
 
 return {
-	guid = "ee50db92-7cc9-405c-8bdd-4e92155710c0",
+	guid = "796198c2-73f8-4362-9635-43ca411f265b",
 	format = "1.14",
 	name = "Link to the Past JPv1.0",
 	match = {"stringtest", addr=0xFFC0, value="ZELDANODENSETSU"},
 
-	running = {"test", addr = 0x7E0010, gte = 0x6, lte = 0x19},
+	running = {"test", addr = 0x7E0010, values = {0x07, 0x09, 0x0B, 0x0E, 0x12, 0x13, 0x15, 0x16, 0x18, 0x19}},
+	receiving = {"test", addr = 0x7E0011, values = {0x00}},
 	sync = {
-		[0x7E0010] = {kind="state"},
+		[0x7E0010] = {kind="state",
+			sleep=function(value)
+			  local state = memory.readbyte(0x7E0010)
+			  local submodule = memory.readbyte(0x7E0011)
+				return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00) and (state ~= value))
+			end
+		},
 		[0x7EF01B] = {name="aga2",verb="killed",kind="bitOr",mask=0x8},
 		[0x7EF041] = {name="aga1",verb="killed",kind="bitOr",mask=0x8},
 		[0x7EF2DB] = {kind="custom"}, -- Pyramid
@@ -68,8 +75,18 @@ return {
 		[0x7EF367] = {kind="bitOr"},
 		[0x7EF36B] = {kind="either"}, -- Heart pieces
 		[0x7EF36C] = {kind="high"}, -- Health 1
-		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill"}, -- Health 2
-		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill"}, -- Magic 1
+		[0x7EF36D] = {kind="HealthShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Health 2
+		[0x7EF36E] = {kind="MagicShare", stype="uInstantRefill",
+		sleep=function(value)
+			local state = memory.readbyte(0x7E0010)
+			local submodule = memory.readbyte(0x7E0011)
+			return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00))
+		end}, -- Magic 1
 		[0x7EF370] = {kind="high"}, -- Bomb upgrades
 		[0x7EF371] = {kind="high"}, -- Arrow upgrades
 		[0x7EF379] = {kind="bitOr"}, -- Abilities
@@ -87,7 +104,7 @@ return {
 				if value == izValue then
 					haveIzelda=true
 				end
-				if value == notagValue and haveIzelda then
+				if value == noTagValue and haveIzelda then
 					allow=true
 					haveIzelda=false
 				end
