@@ -11,21 +11,21 @@ You can reach me, FirenX, here at GitHub or at Discord as Feed4Fame#7342.
 ## What is shared?
 
 All modes share:
-	* The complete Inventory (all Y-items, all ability items, swords, shields, mails)
-	* Bottle Contents
-	* Arrows, Bombs, Rupees
-	* Heart Containers/Pieces
-	* Half Magic Buff
-	* Curent HP/Magic (optional)
-	* Triforce Pieces (in Rando)
+* The complete Inventory (all Y-items, all ability items, swords, shields, mails)
+* Bottle Contents
+* Arrows, Bombs, Rupees
+* Heart Containers/Pieces
+* Half Magic Buff
+* Curent HP/Magic (optional)
+* Triforce Pieces (in Rando)
 
 On top of that, Link to the Past and Link to the Past Randomizer - Identical Seeds share:
-	* Pendants/Crystals
-	* Compasses, Maps
-	* Keys (Big and Small)
-	* Overworld/Dungeon data (e.g. Doors/Chests/Item Locations are opened/taken for both players if one player does so)
-	* Boss kills (including Aga1 and Aga2)
-	* Reaching the Triforce Room
+* Pendants/Crystals
+* Compasses, Maps
+* Keys (Big and Small)
+* Overworld/Dungeon data (e.g. Doors/Chests/Item Locations are opened/taken for both players if one player does so)
+* Boss kills (including Aga1 and Aga2)
+* Reaching the Triforce Room
 
 For the Overworld/Dungeon data to share correctly it is recommended to not be in the same overworld screen/dungeon superroom simultaneously.
 
