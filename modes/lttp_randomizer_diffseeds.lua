@@ -23,7 +23,7 @@ end
 local mushroomByte = 0x7EF344
 
 return {
-	guid = "420ca877-f90b-4dd4-be96-cf319ae3357f",
+	guid = "47127842-7455-4e78-a1ed-4ac52d154eec",
 	format = "1.14",
 	name = "Link to the Past Randomizer - Different Seeds",
 	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
@@ -47,18 +47,6 @@ return {
 				-- If mushroom bit went high and no mushroom type item is being held, place mushroom in inventory
 				if 0 ~= AND(value, BIT(5)) and 0 == AND(previousValue, BIT(5)) and 0 == memory.readbyte(mushroomByte) then
 					memory.writebyte(mushroomByte, 1)
-				end
-			end
-		},
-		[0x7E0010] = {kind="state",
-			sleep=function(value)
-			  local state = memory.readbyte(0x7E0010)
-			  local submodule = memory.readbyte(0x7E0011)
-				return (((not (state == 0x07 or state == 0x09 or state == 0x0B)) or submodule ~= 0x00) and (state ~= value))
-			end,
-			receiveTrigger=function(value, previousValue)
-				if (value == 0x19 and previousValue ~= 0x19) then
-					memory.writebyte(0x7EF443, 1)
 				end
 			end
 		},

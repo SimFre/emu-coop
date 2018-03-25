@@ -3,6 +3,6 @@
 
 modes = {
 	require "modes.lttp",
-	require "modes.lttp_randomizer",
-	require "modes.lttp_randomizer_cross"
+	require "modes.lttp_randomizer_identseeds",
+	require "modes.lttp_randomizer_diffseeds"
 }
