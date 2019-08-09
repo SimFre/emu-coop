@@ -16,7 +16,7 @@ function ircDialog()
 		"Current Health share? %b\n" ..
 		"Magic share? %b\n" ..
 		"Retro mode? %b\n"
-		,"svn.eastcoast.hosting", 6667, "", "", 0,0,0,0)
+		,"svn.eastcoast.hosting", 6667, "Labot", "#Labot", 0,0,0,0)
 
 	if 0 == res then return nil end
 

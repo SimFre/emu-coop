@@ -85,6 +85,7 @@ function Pipe:handle() end
 local IrcState = {login = 1, searching = 2, handshake = 3, piping = 4, aborted=5}
 local IrcHello = "!! Hi, I'm a matchmaking bot for SNES games. This user thinks you're running the same bot and typed in your nick. If you're a human and seeing this, they made a mistake!"
 local IrcConfirm = "@@ " .. version.ircPipe
+local IrcComm = "user" -- user or channel
 
 class.IrcPipe(Pipe)
 function IrcPipe:_init(data, driver)
@@ -117,27 +118,30 @@ function IrcPipe:handle(s)
 
 	splits = stringx.split(s, nil, 2)
 	local cmd, args = splits[1], splits[2]
+	if pipeDebug then print("CMD: ", cmd) end
 
 	if cmd == "PING" then -- On "PING :msg" respond with "PONG :msg"
 		if pipeDebug then print("Handling ping") end
-
 		self:send("PONG " .. args)
 
 	elseif cmd:sub(1,1) == ":" then -- A message from a server or user
 		local source = cmd:sub(2)
-		--print(self.state .. " " .. string.sub(source,1,#self.data.nick) .. " " .. self.data.server)
+		-- print(self.state .. " " .. string.sub(source,1,#self.data.nick) .. " " .. self.data.server)
+		print("Source: ", source)
 		if self.state == IrcState.login then
 			if string.sub(source,1,#self.data.nick) == self.data.nick then -- This is the initial mode set from the server, we are logged in
 				if pipeDebug then print("Logged in to server") end
 
 				self.state = IrcState.searching
-				self:whoisCheck()
+				-- self:whoisCheck()
 			end
 		else
 			local partnerlen = #self.data.partner
 
 			if source:sub(1,partnerlen) == self.data.partner and source:sub(partnerlen+1, partnerlen+1) == "!" then
 				local splits2 = stringx.split(args, nil, 3)
+				-- RECV: :Laban!root@user PRIVMSG #LABOT :hoho
+				-- Insert or channel here
 				if splits2[1] == "PRIVMSG" and splits2[2] == self.data.nick and splits2[3]:sub(1,1) == ":" then -- This is a message from the partner nick
 					local msg = splits2[3]:sub(2)
 					
@@ -182,13 +186,38 @@ function IrcPipe:handle(s)
 			elseif self.state == IrcState.searching and source == self.data.server then
 				local splits2 = stringx.split(args, nil, 2)
 				local msg = tonumber(splits2[1])
-				if msg and msg >= 311 and msg <= 317 then -- This is a whois response
+				if pipeDebug then print("Message ID: ", msg) end
+				
+				-- Whois response
+				if msg and msg >= 311 and msg <= 317 then
 					if pipeDebug then print("Whois response") end
 
 					statusMessage("Connecting to partner...")
 					self.state = IrcState.handshake
 					self:msg(IrcHello)
-				end 
+
+				-- Joined channel
+				elseif msg and msg == 353 then
+				    if pipeDebug then print("Joined channel") end
+				    
+				    -- RECV: :svn.eastcoast.hosting 353 botbot = #LABOT :botbot Laban
+
+				    statusMessage("Joined channel ")
+				    self.state = IrcState.handshake
+				    self:msg(IrcHello)
+				end
+				
+				-- End of MOTD
+				if msg and msg == 376 then
+	    			if pipeDebug then print("Partner is ", IrcComm, " ", self.data.partner) end
+
+    				-- self:send("JOIN #LABOT")
+                    if self.data.partner:sub(1) == "#" then
+			            IrcComm = "channel"
+			        else
+    			        IrcComm = "user"
+	    		    end
+	    		end
 			end
 		end
 	end
