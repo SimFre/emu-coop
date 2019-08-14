@@ -5,6 +5,8 @@ local optionLetter = "o"
 if FCEU then optionLetter = "l" end
 
 function ircDialog()
+	if not defaultNickname then defaultNickname = "" end
+	if not defaultChannel then defaultChannel = "" end
 	local res, server, port, nick, partner, forceSend, hpshare, magicshare, retromode = iup.GetParam("Connection settings", nil,
 	    "Enter an IRC server: %s\n" ..
 		"IRC server port: %i\n" ..
@@ -16,7 +18,7 @@ function ircDialog()
 		"Current Health share? %b\n" ..
 		"Magic share? %b\n" ..
 		"Retro mode? %b\n"
-		,"svn.eastcoast.hosting", 6667, "Labot", "#Labot", 0,0,0,0)
+		,"svn.eastcoast.hosting", 6667, defaultNickname, defaultChannel, 0,0,0,0)
 
 	if 0 == res then return nil end
 

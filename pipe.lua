@@ -1,14 +1,27 @@
 -- NETWORKING
 
--- A Pipe class is responsible for, somehow or other, connecting to the internet and funnelling data between driver objects on different machines.
+-- A Pipe class is responsible for, somehow or other, connecting to the internet
+-- and funnelling data between driver objects on different machines.
 
 class.Pipe()
+
 function Pipe:_init()
 	self.buffer = ""
 end
 
+function Pipe:debugPrint(...)
+  if pipeDebug then
+  	local arg = {...}
+  	local res = ""
+  	for i,v in ipairs(arg) do
+  	  res = res .. " " .. v
+  	end
+		print("DEBUG: ", res)
+	end
+end
+
 function Pipe:wake(server)
-	if pipeDebug then print("Connected") end
+	Pipe:debugPrint("Connected")
 	statusMessage("Logging in to server...") -- This creates an unfortunate implicit contract where the driver needs to statusMessage(nil)
 	self.server = server
 	self.server:settimeout(0)
@@ -26,7 +39,7 @@ function Pipe:wake(server)
 end
 
 function Pipe:exit()
-	if pipeDebug then print("Disconnecting") end
+	Pipe:debugPrint("Disconnecting")
 	self.dead = true
 	self.server:close()
 	self:childExit()
@@ -37,7 +50,7 @@ function Pipe:fail(err)
 end
 
 function Pipe:send(s)
-	if pipeDebug then print("SEND: " .. s) end
+	Pipe:debugPrint("SEND: " .. s)
 
 	local res, err = self.server:send(s .. "\r\n")
 	if not res then
@@ -85,7 +98,7 @@ function Pipe:handle() end
 local IrcState = {login = 1, searching = 2, handshake = 3, piping = 4, aborted=5}
 local IrcHello = "!! Hi, I'm a matchmaking bot for SNES games. This user thinks you're running the same bot and typed in your nick. If you're a human and seeing this, they made a mistake!"
 local IrcConfirm = "@@ " .. version.ircPipe
-local IrcComm = "user" -- user or channel
+local IrcComm = "undefined" -- user or channel
 
 class.IrcPipe(Pipe)
 function IrcPipe:_init(data, driver)
@@ -99,6 +112,13 @@ end
 function IrcPipe:childWake()
 	self:send("NICK " .. self.data.nick)
 	self:send("USER " .. self.data.nick .."-bot 8 * : " .. self.data.nick .. " (snes bot)")
+	if self.data.partner:sub(1,1) == "#" then
+		IrcComm = "channel"
+		self:send("JOIN " .. self.data.partner)
+	else
+		IrcComm = "user"
+	end
+	Pipe:debugPrint("Partner is ", IrcComm, " ", self.data.partner)
 end
 
 function IrcPipe:childTick()
@@ -114,110 +134,135 @@ function IrcPipe:abort(msg)
 end
 
 function IrcPipe:handle(s)
-	if pipeDebug then print("RECV: " .. s) end
+	Pipe:debugPrint("RECV: " .. s)
 
 	splits = stringx.split(s, nil, 2)
 	local cmd, args = splits[1], splits[2]
-	if pipeDebug then print("CMD: ", cmd) end
 
 	if cmd == "PING" then -- On "PING :msg" respond with "PONG :msg"
-		if pipeDebug then print("Handling ping") end
+		Pipe:debugPrint("Handling ping")
 		self:send("PONG " .. args)
 
 	elseif cmd:sub(1,1) == ":" then -- A message from a server or user
 		local source = cmd:sub(2)
+		local nick = stringx.split(source, "!", 2)[1]
+		local splits2 = stringx.split(args, nil, 3)
+		local commandType = splits2[1]
+		local recipient = splits2[2]
+		local msg = ""
+		if splits2[3] ~= nil then
+			msg = splits2[3]:sub(2)
+		end
+		
+		-- You joined channel
+		if commandType == "JOIN" and source == self.data.me then
+			local channel = recipient:sub(2)
+			statusMessage("You joined " .. channel)
+			self.state = IrcState.handshake
+			self:msg(IrcHello)
+
+		-- Someone else joined channel
+		elseif commandType == "JOIN" and source ~= self.data.me then
+			local channel = recipient:sub(2)
+			statusMessage(nick .. " has joined " .. channel)
+
+		-- Someone left a channel
+		elseif commandType == "PART" then
+			statusMessage(nick .. " left " .. recipient)
+
+		-- Someone quit
+		elseif commandType == "QUIT" then
+			msg = splits2[3]
+			statusMessage(nick .. " quit: (" .. msg .. ")")
+
+		-- A mode is set
+		elseif commandType == "MODE" then
+			local msg = splits2[3]:sub(1)
+			if self.data.me == nil and string.sub(source,1,#self.data.nick) == self.data.nick then
+				self.data.me = source
+			end
+
+		-- Incomming message
+		elseif commandType == "PRIVMSG" then
+			if recipient == self.data.partner then
+				if self.state == IrcState.piping then       -- Message with payload
+						if msg:sub(1,1) == "#" then
+							self.driver:handle(msg:sub(2))
+						end
+				else -- handshake
+					local prefix = msg:sub(1,2)
+					local exclaim = prefix == "!!"
+					local confirm = prefix == "@@" 
+					if exclaim or confirm then
+						if not self.sentVersion then
+							Pipe:debugPrint("Handshake started")
+							self:msg(IrcConfirm)
+							self.sentVersion = true
+						end
+
+						if confirm then
+							local splits3 = stringx.split(msg, nil, 2)
+							local theirIrcVersion = splits3[2]
+							if not versionMatches(version.ircPipe, theirIrcVersion) then
+								self:abort("Your partner's emulator version is incompatible")
+								print("Other user is using IRC pipe version " .. tostring(theirIrcVersion) .. ", you have " .. tostring(version.ircPipe))
+							else
+								Pipe:debugPrint("Handshake finished")
+								statusMessage(nil)
+								message("Connected to partner")
+
+								self.state = IrcState.piping
+								self.driver:wake(self)
+							end
+						end
+					elseif msg:sub(1,1) == "#" then
+						self:abort("Tried to connect, but your partner is already playing the game! Try resetting?")
+					else
+						statusMessage(nick.."> " .. msg)
+						-- self:abort("Your partner's emulator responded in... English? You probably typed the wrong nick!")
+					end
+				end -- end of handshake
+
+			end
+
+		-- Topic changed
+		elseif commandType == "TOPIC" then
+			statusMessage("Topic in " .. recipient .. " changed to " .. msg)
+		
+		-- Channel topic join message
+		elseif commandType == "332" then
+			local t = stringx.split(msg, " :", 2)
+			local topicUser = t[1]
+			local topicText = stringx.strip(t[2])
+			statusMessage("Topic is " .. topicText .. " set by " .. topicUser)
+		end
+
+		Pipe:debugPrint("Nick:", nick, "FullNick:", source, "CommandType:", commandType, "Recipient:", recipient, "Message:", msg)
+
 		-- print(self.state .. " " .. string.sub(source,1,#self.data.nick) .. " " .. self.data.server)
-		print("Source: ", source)
 		if self.state == IrcState.login then
 			if string.sub(source,1,#self.data.nick) == self.data.nick then -- This is the initial mode set from the server, we are logged in
-				if pipeDebug then print("Logged in to server") end
-
+				Pipe:debugPrint("Logged in to server")
 				self.state = IrcState.searching
 				-- self:whoisCheck()
 			end
 		else
-			local partnerlen = #self.data.partner
 
-			if source:sub(1,partnerlen) == self.data.partner and source:sub(partnerlen+1, partnerlen+1) == "!" then
-				local splits2 = stringx.split(args, nil, 3)
-				-- RECV: :Laban!root@user PRIVMSG #LABOT :hoho
-				-- Insert or channel here
-				if splits2[1] == "PRIVMSG" and splits2[2] == self.data.nick and splits2[3]:sub(1,1) == ":" then -- This is a message from the partner nick
-					local msg = splits2[3]:sub(2)
-					
-					if self.state == IrcState.piping then       -- Message with payload
-						if msg:sub(1,1) == "#" then
-							self.driver:handle(msg:sub(2))
-						end
-					else                                        -- Handshake message
-						local prefix = msg:sub(1,2)
-						local exclaim = prefix == "!!"
-						local confirm = prefix == "@@" 
-						if exclaim or confirm then
-							if not self.sentVersion then
-								if pipeDebug then print("Handshake started") end
-								self:msg(IrcConfirm)
-								self.sentVersion = true
-							end
-
-							if confirm then
-								local splits3 = stringx.split(msg, nil, 2)
-								local theirIrcVersion = splits3[2]
-								if not versionMatches(version.ircPipe, theirIrcVersion) then
-									self:abort("Your partner's emulator version is incompatible")
-									print("Other user is using IRC pipe version " .. tostring(theirIrcVersion) .. ", you have " .. tostring(version.ircPipe))
-								else
-									if pipeDebug then print("Handshake finished") end
-									statusMessage(nil)
-									message("Connected to partner")
-
-									self.state = IrcState.piping
-									self.driver:wake(self)
-								end
-							end
-						elseif msg:sub(1,1) == "#" then
-							self:abort("Tried to connect, but your partner is already playing the game! Try resetting?")
-						else
-							self:abort("Your partner's emulator responded in... English? You probably typed the wrong nick!")
-						end
-					end
-				end
-
-			elseif self.state == IrcState.searching and source == self.data.server then
+			
+			if self.state == IrcState.searching and source == self.data.server then
 				local splits2 = stringx.split(args, nil, 2)
 				local msg = tonumber(splits2[1])
-				if pipeDebug then print("Message ID: ", msg) end
+				Pipe:debugPrint("Message ID: ", msg)
 				
 				-- Whois response
 				if msg and msg >= 311 and msg <= 317 then
-					if pipeDebug then print("Whois response") end
+					Pipe:debugPrint("Whois response")
 
 					statusMessage("Connecting to partner...")
 					self.state = IrcState.handshake
 					self:msg(IrcHello)
 
-				-- Joined channel
-				elseif msg and msg == 353 then
-				    if pipeDebug then print("Joined channel") end
-				    
-				    -- RECV: :svn.eastcoast.hosting 353 botbot = #LABOT :botbot Laban
-
-				    statusMessage("Joined channel ")
-				    self.state = IrcState.handshake
-				    self:msg(IrcHello)
 				end
-				
-				-- End of MOTD
-				if msg and msg == 376 then
-	    			if pipeDebug then print("Partner is ", IrcComm, " ", self.data.partner) end
-
-    				-- self:send("JOIN #LABOT")
-                    if self.data.partner:sub(1) == "#" then
-			            IrcComm = "channel"
-			        else
-    			        IrcComm = "user"
-	    		    end
-	    		end
 			end
 		end
 	end
