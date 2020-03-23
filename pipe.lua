@@ -118,7 +118,7 @@ function IrcPipe:childWake()
 	else
 		IrcComm = "user"
 	end
-	Pipe:debugPrint("Partner is ", IrcComm, " ", self.data.partner)
+	Pipe:debugPrint("Partner is", IrcComm, self.data.partner)
 end
 
 function IrcPipe:childTick()
@@ -159,12 +159,14 @@ function IrcPipe:handle(s)
 			local channel = recipient:sub(2)
 			statusMessage("You joined " .. channel)
 			self.state = IrcState.handshake
-			self:msg(IrcHello)
+			-- self:msg(IrcHello)
+			self:msg(IrcConfirm)
 
 		-- Someone else joined channel
 		elseif commandType == "JOIN" and source ~= self.data.me then
 			local channel = recipient:sub(2)
 			statusMessage(nick .. " has joined " .. channel)
+			self:msg(IrcConfirm)
 
 		-- Someone left a channel
 		elseif commandType == "PART" then
@@ -184,7 +186,9 @@ function IrcPipe:handle(s)
 
 		-- Incomming message
 		elseif commandType == "PRIVMSG" then
+			-- Pipe:debugPrint("Handshake started")
 			if recipient == self.data.partner then
+				
 				if self.state == IrcState.piping then       -- Message with payload
 						if msg:sub(1,1) == "#" then
 							self.driver:handle(msg:sub(2))
