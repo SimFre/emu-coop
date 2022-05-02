@@ -2,7 +2,7 @@
 
 pipeDebug = true
 driverDebug = true
-defaultNickname = "Labot"
-defaultChannel = "#Labot"
+DEFAULT_NICKNAME = "Labot"
+DEFAULT_HOSTNAME = "irc.edge.lan2k.org"
+DEFAULT_PORT = 6667
 require("coop")
-
