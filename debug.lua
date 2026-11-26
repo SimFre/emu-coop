@@ -2,6 +2,7 @@
 
 pipeDebug = true
 driverDebug = true
+COOP_LOG = "coop_debug.log" -- Everything printed is also written here
 DEFAULT_NICKNAME = "Labot"
 DEFAULT_HOSTNAME = "irc.edge.lan2k.org"
 DEFAULT_PORT = 6667

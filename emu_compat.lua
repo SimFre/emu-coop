@@ -110,3 +110,25 @@ function compat.missingEmulatorApi()
 	if #missing > 0 then return missing end
 	return nil
 end
+
+-- DEBUG LOG FILE
+-- Set COOP_LOG = "coop_debug.log" (debug.lua does) to copy everything printed to a file
+-- next to the scripts, with a timestamp per line. Handy for playtests: send the file afterwards.
+if COOP_LOG then
+	local path = compat.scriptDir .. COOP_LOG
+	local logFile = io.open(path, "a")
+	if logFile then
+		local rawPrint = print
+		local started = os.clock()
+		print = function(...)
+			rawPrint(...)
+			local parts = {}
+			for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+			logFile:write(string.format("%s +%.2fs ", os.date("%H:%M:%S"), os.clock() - started), table.concat(parts, "\t"), "\n")
+			logFile:flush()
+		end
+		print("=== emu-coop log started " .. os.date("%Y-%m-%d %H:%M:%S") .. " (" .. tostring(_VERSION) .. ") ===")
+	else
+		print("Could not open log file " .. path)
+	end
+end
