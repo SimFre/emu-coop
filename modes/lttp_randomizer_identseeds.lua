@@ -43,7 +43,7 @@ return {
 	guid = "d5cef985-ead9-4553-98d4-4dc6d95cc96c",
 	format = "1.14",
 	name = "Link to the Past Randomizer - Identical Seeds",
-	match = {"stringtest", addr=0xFFC0, value="VT TOURNEY,VTC,ER_"},
+	match = {"stringtest", addr=0xFFC0, value="VT ,VTC,ER_"}, -- "VT <seed hash>" (current alttpr.com, also covers older "VT TOURNEY"), VTC, ER_
 
 	running = {"test", addr = 0x7E0010, values = {0x07, 0x09, 0x0B, 0x0E, 0x12, 0x13, 0x15, 0x16, 0x18, 0x19}},
 	receiving = {"test", addr = 0x7E0011, values = {0x00}},

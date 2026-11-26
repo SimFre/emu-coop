@@ -48,7 +48,7 @@ The last used server, port, nick and options are saved to `coop_settings.txt` ne
 * Have both players open the coop.lua using "File -> Lua Scripting -> New Lua Script Window..."
 * If asked what mode to use, pick the one you intend to use
 * Fill out the connection settings, pick your options and click "OK". Only use "Retro mode" if you are playing a Retro Variation seed of the Randomizer
-* Everyone who uses the same "IRC room" plays together, two players or more. The room defaults to a name taken from the ROM header. Everyone must pick the same options; a player with different options or an incompatible script is ignored ("Ignoring ...") instead of breaking the session
+* Everyone who uses the same "IRC room" plays together, two players or more. The room defaults to the seed hash stored in the ROM (for example `#zMY96EwzMg`), so everyone playing the same alttpr.com seed lands in the same room automatically, whichever Link sprite they picked. Everyone must pick the same options; a player with different options or an incompatible script is ignored ("Ignoring ...") instead of breaking the session
 * Wait for the script to say "<nick> is playing with you". Players who join later automatically receive everyone's progress
 * You can now play the game
 

@@ -12,14 +12,31 @@ end
 local optionLetter = "o"
 if FCEU then optionLetter = "l" end
 
--- Default IRC room name derived from the ROM header title
-local function seedChannel()
-	local seed = "#"
-	for i = 0, 9, 1 do
-		local m = memory.readbyte(0xFFC3 + i)
-		seed = seed .. string.char(m)
+-- The ROM's internal title (SNES header at $00:FFC0, 21 bytes), with trailing spaces removed
+function romTitle()
+	local chars = {}
+	for i = 0, 20 do
+		local m = memory.readbyte(0xFFC0 + i)
+		if m < 0x20 or m > 0x7E then m = 0x20 end -- Replace unprintable bytes
+		chars[#chars + 1] = string.char(m)
 	end
-	return seed
+	return (table.concat(chars):gsub("%s+$", ""))
+end
+
+-- Seed hash of an alttpr.com ROM. Current randomizer builds write "VT <hash>" as the title,
+-- e.g. "VT zMY96EwzMg". The hash is the same for every player's copy of a seed (the copies
+-- only differ in the chosen Link sprite), so it makes a natural room name.
+function seedHash()
+	return romTitle():match("^VT (%w+)$")
+end
+
+-- Default IRC room: the seed hash if there is one, otherwise the ROM title.
+-- Channel names cannot contain spaces, commas or control characters, so keep only letters, digits, - and _.
+local function seedChannel()
+	local name = seedHash() or romTitle()
+	name = name:gsub("[^%w%-_]", "")
+	if name == "" then name = "emu-coop" end
+	return "#" .. name
 end
 
 local function b(x) return x and 1 or 0 end
@@ -70,6 +87,7 @@ end
 
 function selectDialog(specs, reason)
 	if not iup then
+		if #specs == 1 then return specs[1] end -- Only one choice, take it
 		print("Can't figure out which game to load (" .. reason .. "). Enable exactly one mode in modes/index.lua.")
 		return nil
 	end
