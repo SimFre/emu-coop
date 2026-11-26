@@ -35,3 +35,6 @@ coverage/
 *.backup
 *.old
 *.orig
+
+# Saved connection settings (written by settings.lua)
+coop_settings.txt

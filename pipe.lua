@@ -54,7 +54,7 @@ function Pipe:send(s)
 
 	local res, err = self.server:send(s .. "\r\n")
 	if not res then
-		errorMessage("Connection died: " .. s)
+		errorMessage("Connection died: " .. tostring(err))
 		self:exit()
 		return false
 	end
@@ -136,7 +136,7 @@ end
 function IrcPipe:handle(s)
 	Pipe:debugPrint("RECV: " .. s)
 
-	splits = stringx.split(s, nil, 2)
+	local splits = stringx.split(s, nil, 2)
 	local cmd, args = splits[1], splits[2]
 
 	if cmd == "PING" then -- On "PING :msg" respond with "PONG :msg"
@@ -302,7 +302,7 @@ function Driver:handle(s)
 	if t then
 		self:handleTable(t)
 	else
-		self.handleFailure(s, err)
+		self:handleFailure(s, err)
 	end
 end
 

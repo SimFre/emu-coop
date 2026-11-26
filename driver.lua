@@ -352,7 +352,7 @@ function GameDriver:handleTable(t)
 		end
     if not optionsMatch(opts, t.options) then
       self.pipe:abort("Partner disagrees on options chosen.")
-      print("Partner's options are:\n" .. tostring(t.options) .. "\nbut yours are:\n" .. tostring(opts))
+      print("Partner's options are:\n" .. pretty.write(t.options or {}) .. "\nbut yours are:\n" .. pretty.write(opts))
     end
 		return
 	end
@@ -423,6 +423,6 @@ function GameDriver:handleTable(t)
 	end
 end
 
-function GameDriver:handleError(s, err)
+function GameDriver:handleFailure(s, err)
 	print("FAILED TABLE LOAD " .. err)
 end

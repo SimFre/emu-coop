@@ -1,6 +1,13 @@
+-- Find our own modules even when the emulator was started from another directory
+local scriptDir = (debug.getinfo(1, "S").source or ""):match("^@(.*[/\\])") or ""
+package.path = scriptDir .. "?.lua;" .. package.path
+
+-- Must come first: sets up module paths, bit operations and Lua version shims
+require "emu_compat"
+
 class   = require "pl.class"
 pretty  = require "pl.pretty"
-List    = require "pl.list"
+List    = require "pl.List" -- Case matters on Linux
 stringx = require "pl.stringx"
 tablex  = require "pl.tablex"
 
@@ -14,7 +21,11 @@ require "driver"
 
 -- PROGRAM
 
-if emu.emulating() then
+local missingApi = compat.missingEmulatorApi()
+
+if missingApi then
+	refuseDialog("This emulator does not provide the Lua functions emu-coop needs: " .. table.concat(missingApi, ", "))
+elseif emu.emulating() then
 	local spec = nil -- Mode specification
 
 	local usableModes = {} -- Mode files that can be loaded in this version of coop.lua
@@ -49,7 +60,7 @@ if emu.emulating() then
 		if data then -- If user did not hit cancel
 			local failed = false
 
-			function scrub(invalid) errorMessage(invalid .. " not valid") failed = true end
+			local function scrub(invalid) errorMessage(invalid .. " not valid") failed = true end
 
 			-- Strip out stray whitespace (this can be a problem on FCEUX)
 			for _,v in ipairs{"server", "nick", "partner"} do
@@ -63,10 +74,10 @@ if emu.emulating() then
 			elseif not nonempty(data.partner) then scrub("Partner nick")
 			end
 
-			function connect()
+			local function connect()
 				local socket = require "socket"
 				local server = socket.tcp()
-				result, err = server:connect(data.server, data.port)
+				local result, err = server:connect(data.server, data.port)
 
 				if not result then errorMessage("Could not connect to IRC: " .. err) failed = true return end
 

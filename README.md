@@ -32,6 +32,15 @@ For the Overworld/Dungeon data to share correctly it is recommended to not be in
 For Link to the Past Randomizer - Different Seeds it is recommended to play on a higher difficulty setting or with customizer seeds since you will otherwise end up at 20 Hearts, Golden Sword, Red Mail, Mirrorshield, Quarter Magic relatively quickly.
 
 
+## Requirements and platforms
+
+The scripts run on Lua 5.1 through 5.4 and need an emulator with the snes9x-rr style Lua API (`memory.registerwrite`, `gui.register`, `emu.registerexit`). If that API is missing, the script says which functions it could not find.
+
+* **Windows:** the bundled `iup.dll`, `iuplua.dll` and `socket/core.dll` are used, as before.
+* **Linux:** install LuaSocket for your Lua version (for example the `lua-socket` package), or put its `core.so` at `lib/linux/socket/core.so`. IUP is optional. Without it there is no dialog box; the script reads `coop_settings.txt` instead and creates a template on first run for you to fill in. Set `RESTARTING_AFTER_CRASH = true` in `debug.lua` (or before `require("coop")`) to resync after a crash.
+
+The last used server, port, nick and options are saved to `coop_settings.txt` next to the scripts. Tick "Reset saved settings?" in the connection dialog to clear them.
+
 ## How to Use
 
 * Open the ROM using the snes9x-coop

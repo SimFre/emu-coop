@@ -37,10 +37,10 @@ end
 -- Version string tools
 function parseVersion(s)
 	local split = stringx.split(s)
-	if not split[1] then return null end
+	if not split[1] then return nil end
 
 	local split2 = stringx.split(split[1], ".")
-	if not (split2[1] and split2[2]) then return null end
+	if not (split2[1] and split2[2]) then return nil end
 
 	local variant = {}
 	for x=2,#split do table.insert(variant, split[x]) end
@@ -93,7 +93,7 @@ end
 
 -- Callback to print the current error message
 function printMessage()
-	local msg = null
+	local msg = nil
 	if currentError then
 		msg = currentError
 	else
