@@ -16,7 +16,8 @@ version = {
 
 	-- Which version of the way of shuttling data over IRC is this?
 	-- Increment this number if you change the handshake or the way tables are encoded into text in pipe.lua
-	ircPipe = "1.1",
+	-- 2.0: IRC room with any number of players, per-player handshake, batched messages
+	ircPipe = "2.0",
 
 	-- Format/capabilities used for modes in the modes/ directory
 	-- Increment this number if you change driver.lua in a way that means things are possible in a modes/ file that weren't before

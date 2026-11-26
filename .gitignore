@@ -38,3 +38,8 @@ coverage/
 
 # Saved connection settings (written by settings.lua)
 coop_settings.txt
+
+# Test ROMs (never commit these)
+roms/
+*.sfc
+*.smc

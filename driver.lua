@@ -241,6 +241,31 @@ function GameDriver:_init(spec, forceSend)
 	self.sleepQueue = {}
 	self.forceSend = forceSend
 	self.didCache = false
+	self.wantFullState = false
+end
+
+-- Send every non-zero synced value, so a player who just joined the room catches up.
+-- Waits until the game is running, since memory is meaningless before that.
+function GameDriver:sendFullState()
+	if not self:isRunning(false) then
+		self.wantFullState = true
+		return
+	end
+	self.wantFullState = false
+	self:checkFirstRunning()
+	local count = 0
+	for k, v in pairs(self.spec.sync) do
+		local value = memoryRead(k, v.size)
+		if value ~= 0 then -- FIXME: This is adequate for all current specs but maybe it will not be in future?!
+			self:sendTable({addr=k, value=value})
+			count = count + 1
+		end
+	end
+	if driverDebug then print("Sent full state (" .. count .. " values)") end
+end
+
+function GameDriver:greet()
+	self:sendTable({"hello", version=version.release, guid=self.spec.guid, options=opts}, true)
 end
 
 function GameDriver:checkFirstRunning() -- Do first-frame bootup-- only call if isRunning()
@@ -280,19 +305,19 @@ function GameDriver:childTick()
 	if self:isRunning(false) then
 		self:checkFirstRunning()
 
+		if self.wantFullState then self:sendFullState() end
+
 		if #self.sleepQueue > 0 then
 			local sQueue = self.sleepQueue
 			self.sleepQueue = {}
 			for i, v in ipairs(sQueue) do
-				self:handleTable(v)
+				self:handleTable(v[1], v[2])
 			end
 		end
 	end
 end
 
 function GameDriver:childWake()
-	self:sendTable({"hello", version=version.release, guid=self.spec.guid, options=opts})
-
 	for k,v in pairs(self.spec.sync) do
 		local syncTable = self.spec.sync -- Assume sync table is not replaced at runtime
 		local baseAddr = k - (k%2)       -- 16-bit aligned equivalent of address
@@ -344,18 +369,21 @@ function GameDriver:caughtWrite(addr, arg2, record, size)
 	end
 end
 
-function GameDriver:handleTable(t)
+function GameDriver:handleTable(t, from)
 	if t[1] == "hello" then
 		if t.guid ~= self.spec.guid then
-			self.pipe:abort("Partner has an incompatible .lua file for this game.")
-			print("Partner's game mode file has guid:\n" .. tostring(t.guid) .. "\nbut yours has:\n" .. tostring(self.spec.guid))
+			print(tostring(from) .. "'s game mode file has guid:\n" .. tostring(t.guid) .. "\nbut yours has:\n" .. tostring(self.spec.guid))
+			self.pipe:rejectPeer(from, "different .lua file for this game")
+		elseif type(t.options) ~= "table" or not optionsMatch(opts, t.options) then
+			print(tostring(from) .. "'s options are:\n" .. pretty.write(type(t.options) == "table" and t.options or {}) .. "\nbut yours are:\n" .. pretty.write(opts))
+			self.pipe:rejectPeer(from, "different options chosen")
+		elseif self.pipe:peerReady(from) then
+			self:sendFullState()
 		end
-    if not optionsMatch(opts, t.options) then
-      self.pipe:abort("Partner disagrees on options chosen.")
-      print("Partner's options are:\n" .. pretty.write(t.options or {}) .. "\nbut yours are:\n" .. pretty.write(opts))
-    end
 		return
 	end
+
+	if not self.pipe:isReady(from) then return end -- Only accept game data after a matching hello
 
 	local addr = t.addr
 	local record = self.spec.sync[addr]
@@ -405,7 +433,7 @@ function GameDriver:handleTable(t)
 				if names then
 					local verb = record.verb or "got"
 					for i, v in ipairs(names) do
-						message("Partner " .. verb .. " " .. v)
+						message(tostring(from) .. " " .. verb .. " " .. v)
 					end
 				else
 					if driverDebug then print("Updated anonymous address " .. tostring(addr) .. " to " .. tostring(value)) end
@@ -415,14 +443,14 @@ function GameDriver:handleTable(t)
 			end
 		else
 			if driverDebug then print("Unknown memory address was " .. tostring(addr)) end
-			message("Partner changed unknown memory address...? Uh oh")
+			message(tostring(from) .. " changed unknown memory address...? Uh oh")
 		end
 	else
 		if driverDebug then print("Queueing partner memory write because the game is not running") end
-		table.insert(self.sleepQueue, t)
+		table.insert(self.sleepQueue, {t, from})
 	end
 end
 
 function GameDriver:handleFailure(s, err)
-	print("FAILED TABLE LOAD " .. err)
+	print("FAILED TABLE LOAD " .. tostring(err))
 end

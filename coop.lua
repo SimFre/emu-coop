@@ -63,7 +63,7 @@ elseif emu.emulating() then
 			local function scrub(invalid) errorMessage(invalid .. " not valid") failed = true end
 
 			-- Strip out stray whitespace (this can be a problem on FCEUX)
-			for _,v in ipairs{"server", "nick", "partner"} do
+			for _,v in ipairs{"server", "nick", "room"} do
 				if data[v] then data[v] = data[v]:gsub("%s+", "") end
 			end
 
@@ -71,8 +71,11 @@ elseif emu.emulating() then
 			if not nonempty(data.server) then scrub("Server")
 			elseif not nonzero(data.port) then scrub("Port")
 			elseif not nonempty(data.nick) then scrub("Nick")
-			elseif not nonempty(data.partner) then scrub("Partner nick")
+			elseif not nonempty(data.room) then scrub("Room")
 			end
+
+			-- Everyone in the same IRC channel plays together
+			if data.room and data.room:sub(1, 1) ~= "#" then data.room = "#" .. data.room end
 
 			local function connect()
 				local socket = require "socket"

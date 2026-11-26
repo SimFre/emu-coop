@@ -37,7 +37,8 @@ For Link to the Past Randomizer - Different Seeds it is recommended to play on a
 The scripts run on Lua 5.1 through 5.4 and need an emulator with the snes9x-rr style Lua API (`memory.registerwrite`, `gui.register`, `emu.registerexit`). If that API is missing, the script says which functions it could not find.
 
 * **Windows:** the bundled `iup.dll`, `iuplua.dll` and `socket/core.dll` are used, as before.
-* **Linux:** install LuaSocket for your Lua version (for example the `lua-socket` package), or put its `core.so` at `lib/linux/socket/core.so`. IUP is optional. Without it there is no dialog box; the script reads `coop_settings.txt` instead and creates a template on first run for you to fill in. Set `RESTARTING_AFTER_CRASH = true` in `debug.lua` (or before `require("coop")`) to resync after a crash.
+* **Linux (recommended for now: snes9x-rr under Wine):** Wine runs the Windows build, so the bundled Windows DLLs are used and nothing else is needed.
+* **Linux (native emulator with the same Lua API):** install LuaSocket for your Lua version (for example the `lua-socket` package), or put its `core.so` at `lib/linux/socket/core.so`. IUP is optional. Without it there is no dialog box; the script reads `coop_settings.txt` instead and creates a template on first run for you to fill in. Set `RESTARTING_AFTER_CRASH = true` in `debug.lua` (or before `require("coop")`) to resync after a crash.
 
 The last used server, port, nick and options are saved to `coop_settings.txt` next to the scripts. Tick "Reset saved settings?" in the connection dialog to clear them.
 
@@ -46,8 +47,9 @@ The last used server, port, nick and options are saved to `coop_settings.txt` ne
 * Open the ROM using the snes9x-coop
 * Have both players open the coop.lua using "File -> Lua Scripting -> New Lua Script Window..."
 * If asked what mode to use, pick the one you intend to use
-* Fill out the connection setting, pick your options and click "OK". Only use "Retro mode" if you are playing a Retro Variation seed of the Randomizer
-* Wait for the script to say "Connected to Partner"
+* Fill out the connection settings, pick your options and click "OK". Only use "Retro mode" if you are playing a Retro Variation seed of the Randomizer
+* Everyone who uses the same "IRC room" plays together, two players or more. The room defaults to a name taken from the ROM header. Everyone must pick the same options; a player with different options or an incompatible script is ignored ("Ignoring ...") instead of breaking the session
+* Wait for the script to say "<nick> is playing with you". Players who join later automatically receive everyone's progress
 * You can now play the game
 
 In case something terrible happens and you need to restart/reconnect:

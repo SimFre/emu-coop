@@ -12,7 +12,7 @@ end
 local optionLetter = "o"
 if FCEU then optionLetter = "l" end
 
--- IRC channel name derived from the ROM header title
+-- Default IRC room name derived from the ROM header title
 local function seedChannel()
 	local seed = "#"
 	for i = 0, 9, 1 do
@@ -26,7 +26,7 @@ local function b(x) return x and 1 or 0 end
 
 function ircDialog()
 	local saved = settings.load()
-	local partner = seedChannel()
+	local room = seedChannel()
 
 	if not iup then
 		if not nonempty(saved.nick) then
@@ -35,16 +35,16 @@ function ircDialog()
 			return nil
 		end
 		print("Connecting with saved settings from " .. settings.file)
-		saved.partner = partner
+		saved.room = room
 		saved.forceSend = RESTARTING_AFTER_CRASH == true
 		return saved
 	end
 
-	local res, server, port, nick, partnerIn, forceSend, hpshare, magicshare, retromode, reset = iup.GetParam("Connection settings", nil,
+	local res, server, port, nick, roomIn, forceSend, hpshare, magicshare, retromode, reset = iup.GetParam("Connection settings", nil,
 		"Enter an IRC server: %s\n" ..
 		"IRC server port: %i\n" ..
 		"Your nick: %s\n" ..
-		"Partner nick: %s\n" ..
+		"IRC room: %s\n" ..
 		"%t\n" .. -- <hr>
 		"Are you restarting\rafter a crash? %b\n" ..
 		"%t\n" ..
@@ -53,7 +53,7 @@ function ircDialog()
 		"Retro mode? %b\n" ..
 		"%t\n" ..
 		"Reset saved settings? %b\n"
-		, saved.server, saved.port, saved.nick, partner, 0, b(saved.hpshare), b(saved.magicshare), b(saved.retromode), 0)
+		, saved.server, saved.port, saved.nick, room, 0, b(saved.hpshare), b(saved.magicshare), b(saved.retromode), 0)
 
 	if 0 == res then return nil end
 
@@ -63,7 +63,7 @@ function ircDialog()
 		return ircDialog()
 	end
 
-	local data = { server = server, port = port, nick = nick, partner = partnerIn, forceSend = forceSend == 1, hpshare = hpshare == 1, magicshare = magicshare == 1, retromode = retromode == 1 }
+	local data = { server = server, port = port, nick = nick, room = roomIn, forceSend = forceSend == 1, hpshare = hpshare == 1, magicshare = magicshare == 1, retromode = retromode == 1 }
 	settings.save(data)
 	return data
 end
