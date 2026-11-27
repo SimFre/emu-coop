@@ -257,9 +257,12 @@ function GameDriver:sendFullState()
 	for k, v in pairs(self.spec.sync) do
 		local value = memoryRead(k, v.size)
 		if value ~= 0 then -- FIXME: This is adequate for all current specs but maybe it will not be in future?!
-			self:sendTable({addr=k, value=value})
+			self:sendTable({addr=k, value=value, sync=true})
 			count = count + 1
 		end
+	end
+	if count > 0 then
+		self:sendTable({"synccomplete", count=count})
 	end
 	if driverDebug then print("Sent full state (" .. count .. " values)") end
 end
@@ -378,7 +381,16 @@ function GameDriver:handleTable(t, from)
 			print(tostring(from) .. "'s options are:\n" .. pretty.write(type(t.options) == "table" and t.options or {}) .. "\nbut yours are:\n" .. pretty.write(opts))
 			self.pipe:rejectPeer(from, "different options chosen")
 		elseif self.pipe:peerReady(from) then
-			self:sendFullState()
+			if self.pipe:isElectedResponder(from) then
+				self:sendFullState()
+			end
+		end
+		return
+	end
+
+	if t[1] == "synccomplete" then
+		if self.pipe:isReady(from) then
+			message(tostring(from) .. " synced " .. tostring(t.count) .. " items")
 		end
 		return
 	end
@@ -402,41 +414,43 @@ function GameDriver:handleTable(t, from)
 					record.receiveTrigger(value, previousValue)
 				end
 
-				local name = record.name
-				local names = nil
-				local msgMask = record.msgMask
+				if not t.sync then -- Catch-up values are narrated once via "synccomplete", not per item
+					local name = record.name
+					local names = nil
+					local msgMask = record.msgMask
 
-				if not name and record.nameMap then
-					name = record.nameMap[value]
-				end
+					if not name and record.nameMap then
+						name = record.nameMap[value]
+					end
 
-				if name then
-					names = {name}
-				elseif record.nameBitmap then
-					names = {}
-					for b=0,7 do
-						if 0 ~= AND(BIT(b), value) and 0 == AND(BIT(b), previousValue) then
-							if msgMask then
-								if 0 ~= AND(BIT(b), msgMask) then
+					if name then
+						names = {name}
+					elseif record.nameBitmap then
+						names = {}
+						for b=0,7 do
+							if 0 ~= AND(BIT(b), value) and 0 == AND(BIT(b), previousValue) then
+								if msgMask then
+									if 0 ~= AND(BIT(b), msgMask) then
+										table.insert(names, record.nameBitmap[b + 1])
+									end
+								else
 									table.insert(names, record.nameBitmap[b + 1])
 								end
-							else
-								table.insert(names, record.nameBitmap[b + 1])
 							end
 						end
+						if next(names) == nil then
+							names = nil
+						end
 					end
-					if next(names) == nil then
-						names = nil
-					end
-				end
 
-				if names then
-					local verb = record.verb or "got"
-					for i, v in ipairs(names) do
-						message(tostring(from) .. " " .. verb .. " " .. v)
+					if names then
+						local verb = record.verb or "got"
+						for i, v in ipairs(names) do
+							message(tostring(from) .. " " .. verb .. " " .. v)
+						end
+					else
+						if driverDebug then print("Updated anonymous address " .. tostring(addr) .. " to " .. tostring(value)) end
 					end
-				else
-					if driverDebug then print("Updated anonymous address " .. tostring(addr) .. " to " .. tostring(value)) end
 				end
 				record.cache = value
 				memoryWrite(addr, value, record.size)

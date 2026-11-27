@@ -166,6 +166,21 @@ function IrcPipe:isReady(nick)
 	return self.peers[nick] == PeerState.ready
 end
 
+-- When newNick just became ready, decide whether WE are the one who should
+-- send full state to them. Every already-ready peer runs this same
+-- computation independently (same inputs, same deterministic sort), so
+-- exactly one of them ends up elected without any negotiation over the wire.
+function IrcPipe:isElectedResponder(newNick)
+	local candidates = {self.nick}
+	for nick, state in pairs(self.peers) do
+		if state == PeerState.ready and nick ~= newNick then
+			table.insert(candidates, nick)
+		end
+	end
+	table.sort(candidates)
+	return candidates[1] == self.nick
+end
+
 function IrcPipe:peerReady(nick)
 	if self.peers[nick] == PeerState.ready then return false end
 	self.peers[nick] = PeerState.ready
